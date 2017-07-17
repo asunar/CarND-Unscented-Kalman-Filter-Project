@@ -51,6 +51,35 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+  // initially set to false, set to true in first call of ProcessMeasurement
+  is_initialized_ = false;
+
+  // time when the state is true, in us
+  time_us_ = 0.0;
+
+  // state dimension
+  n_x_ = 5;
+
+  // Augmented state dimension
+  n_aug_ = 7;
+
+  // Sigma point spreading parameter
+  lambda_ = 3 - n_x_;
+
+  // predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
+  //create vector for weights
+  weights_ = VectorXd(2 * n_aug_ + 1);
+
+  // the current NIS for radar
+  NIS_radar_ = 0.0;
+
+  // the current NIS for laser
+  NIS_laser_ = 0.0;
+
+
+
 }
 
 UKF::~UKF() {}
@@ -100,7 +129,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     // done initializing, no need to predict or update
     is_initialized_ = true;
 
-    std::cout << "Initialized" << endl;
     return;
   }
 
@@ -111,11 +139,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   if(meas_package.sensor_type_ == MeasurementPackage::LASER){
 
-    std::cout << "Updating Lidar" << endl;
+    //std::cout << "Updating Lidar" << endl;
     UpdateLidar(meas_package);
   }
   else if(meas_package.sensor_type_ == MeasurementPackage::RADAR) {
-    std::cout << "Updating Radar" << endl;
+    //std::cout << "Updating Radar" << endl;
     UpdateRadar(meas_package);
   }
 
@@ -144,10 +172,8 @@ void UKF::Prediction(double delta_t) {
   //set lambda for non-augmented sigma points
   lambda_ = 3 - n_x_;
 
-  std::cout << "Setting first col of sigma point matrix to " << x_  << endl;
   //set first column of sigma point matrix
   Xsig.col(0) = x_;
-  std::cout << "Set first col of sigma point matrix to " << x_  << endl;
 
   //set remaining sigma points
   for (int i = 0; i < n_x_; i++)
@@ -184,7 +210,6 @@ void UKF::Prediction(double delta_t) {
   //create square root matrix
   MatrixXd L = P_aug.llt().matrixL();
 
-  std::cout << "Creating augmented sigma points" << endl;
   //create augmented sigma points
   Xsig_aug.col(0)  = x_aug;
   for (int i = 0; i< n_aug_; i++)
@@ -194,7 +219,6 @@ void UKF::Prediction(double delta_t) {
   } 
 
 
-  std::cout << "Created augmented sigma points" << endl;
   //predict sigma points
   for (int i = 0; i< 2*n_aug_+1; i++)
   {
